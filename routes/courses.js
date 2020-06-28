@@ -3,7 +3,12 @@ const Course = require('../models/course');
 const router = Router();
 
 router.get('/', async (req, res) => {
-    const courses = await Course.getAll();
+    const courses = await Course
+      .find()
+      .populate('userId', 'email name')
+      .select('price title img')
+      .lean();
+
     res.render('courses', {
         title: 'Courses page',
         isCourses: true,
@@ -15,23 +20,34 @@ router.get('/:id/edit', async (req, res) => {
     if (!req.query.allow) {
         return res.redirect('/');
     }
+    try {
+        const course = await Course.findById(req.params.id).lean();
 
-    const course = await Course.getById(req.params.id);
+        res.render('course-edit', {
+            title: `Edit ${course.title} course`,
+            course
+        })
+    } catch (err) {
+        console.log(err)
+    }
 
-    res.render('course-edit', {
-        title: `Edit ${course.title} course`,
-        course
-    })
 });
 
 router.post('/edit', async (req, res) => {
-    await Course.update(req.body);
-    res.redirect('/courses')
+    const { id } = req.body
+    delete req.body.id
+
+    try {
+        await Course.findByIdAndUpdate(id, req.body).lean();
+        res.redirect('/courses')
+    } catch (err) {
+        console.log(err)
+    }
 });
 
 router.get('/:id', async (req, res, next) => {
     try {
-        const course = await Course.getById(req.params.id);
+        const course = await Course.findById(req.params.id).lean();
 
         res.render('course', {
             title: `Course ${course.title}`,
@@ -41,5 +57,14 @@ router.get('/:id', async (req, res, next) => {
         next(err)
     }
 });
+
+router.post('/remove', async (req, res) => {
+    try {
+        await Course.deleteOne({_id: req.body.id})
+        res.redirect('/courses')
+    } catch (err) {
+        console.log(err)
+    }
+})
 
 module.exports = router;
