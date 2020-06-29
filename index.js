@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const MongoStore = require('connect-mongodb-session')(session)
 const path = require('path');
 const mongoose = require('mongoose')
 const exphbs = require('express-handlebars');
@@ -13,6 +14,7 @@ const authRoutes = require('./routes/auth')
 const User = require('./models/user')
 const varMiddleware = require('./middleware/variable')
 const { allowInsecurePrototypeAccess } = require('@handlebars/allow-prototype-access');
+const MONGODB_URI = `mongodb+srv://Nastya:8uLbs7tJ8HvpHG2U@cluster0-ajlou.mongodb.net/shop?retryWrites=true&w=majority`
 
 const app = express();
 
@@ -21,27 +23,22 @@ const hbs = exphbs.create({
     extname: 'hbs',
     handlebars: allowInsecurePrototypeAccess(Handlebars)
 });
+const store = new MongoStore({
+    collection: 'sessions',
+    uri: MONGODB_URI
+})
 
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
 app.set('views', 'views');
-
-app.use(async (req, res, next) => {
-    try {
-        const user = await User.findById('5ef895a584b53a04168a2d2c')
-        req.user = user
-        next()
-    } catch (err) {
-        console.log(err)
-    }
-})
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
     secret: 'some secret value',
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    store
 }))
 app.use(varMiddleware)
 
@@ -56,24 +53,11 @@ const PORT = process.env.PORT || 3000;
 
 async function start() {
     try {
-        const url = `mongodb+srv://Nastya:8uLbs7tJ8HvpHG2U@cluster0-ajlou.mongodb.net/shop?retryWrites=true&w=majority`
-        await mongoose.connect(url, {
+        await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             useFindAndModify: false
         })
-
-        const candidate = await User.findOne().lean()
-
-        if (!candidate) {
-            const user = new User({
-                email: 'nz@gmail.com',
-                name: 'Nastya',
-                cart: {items: []}
-            })
-
-            await user.save()
-        }
 
         app.listen(PORT, () => {
             console.log(`server is running.. ${PORT}`);
