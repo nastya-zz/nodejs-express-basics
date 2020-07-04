@@ -1,18 +1,20 @@
 const express = require('express');
 const session = require('express-session');
-const MongoStore = require('connect-mongodb-session')(session)
+const csrf = require('csurf');
+const flash = require('connect-flash');
+const MongoStore = require('connect-mongodb-session')(session);
 const path = require('path');
 const mongoose = require('mongoose')
 const exphbs = require('express-handlebars');
 const Handlebars = require('handlebars');
-const homeRoutes = require('./routes/home')
-const coursesRoutes = require('./routes/courses')
-const addRoutes = require('./routes/add')
-const cardRoutes = require('./routes/card')
-const ordersRoutes = require('./routes/orders')
-const authRoutes = require('./routes/auth')
-const User = require('./models/user')
-const varMiddleware = require('./middleware/variable')
+const homeRoutes = require('./routes/home');
+const coursesRoutes = require('./routes/courses');
+const addRoutes = require('./routes/add');
+const cardRoutes = require('./routes/card');
+const ordersRoutes = require('./routes/orders');
+const authRoutes = require('./routes/auth');
+const varMiddleware = require('./middleware/variable');
+const userMiddleware = require('./middleware/user');
 const { allowInsecurePrototypeAccess } = require('@handlebars/allow-prototype-access');
 const MONGODB_URI = `mongodb+srv://Nastya:8uLbs7tJ8HvpHG2U@cluster0-ajlou.mongodb.net/shop?retryWrites=true&w=majority`
 
@@ -23,6 +25,7 @@ const hbs = exphbs.create({
     extname: 'hbs',
     handlebars: allowInsecurePrototypeAccess(Handlebars)
 });
+
 const store = new MongoStore({
     collection: 'sessions',
     uri: MONGODB_URI
@@ -40,7 +43,10 @@ app.use(session({
     saveUninitialized: false,
     store
 }))
+app.use(csrf());
+app.use(flash());
 app.use(varMiddleware)
+app.use(userMiddleware)
 
 app.use('/', homeRoutes);
 app.use('/courses', coursesRoutes);
