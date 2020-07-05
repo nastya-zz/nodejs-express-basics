@@ -1,7 +1,17 @@
 const {Router} = require('express')
 const Order = require('../models/order')
 const auth = require('../middleware/auth')
+const keys = require('../keys');
 const router = new Router()
+const nodemailer = require('nodemailer');
+const sendgrid = require('nodemailer-sendgrid-transport');
+const orderEmail = require('../emails/order')
+
+
+
+const transporter = nodemailer.createTransport(sendgrid({
+	auth: {api_key: keys.SEND_GRID_API_KEY}
+}))
 
 router.get('/', auth,   async (req, res) => {
 	try {
@@ -44,12 +54,13 @@ router.post('/', auth, async (req, res) => {
 			courses
 		})
 
+		const userEmail = await req.user.email
+
 		await order.save()
 		await req.user.clearCart()
 
-
 		res.redirect('orders')
-
+		await transporter.sendMail(orderEmail(userEmail, order))
 	} catch(err) {
 		console.log(err)
 	}
