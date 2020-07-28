@@ -6,6 +6,7 @@ const MongoStore = require('connect-mongodb-session')(session);
 const path = require('path');
 const mongoose = require('mongoose')
 const helmet = require('helmet')
+const compression = require('compression')
 const exphbs = require('express-handlebars');
 const Handlebars = require('handlebars');
 const homeRoutes = require('./routes/home');
@@ -53,6 +54,7 @@ app.use(fileMiddleware.single('avatar'));
 app.use(csrf());
 app.use(flash());
 app.use(helmet());
+app.use(compression());
 app.use(varMiddleware)
 app.use(userMiddleware)
 
